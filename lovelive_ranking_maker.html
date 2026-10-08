@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ラブライブ！推しキャラランキングメーカー</title>
+<style>
+:root{--bg:#fff7fb;--card:#fff;--pink:#ff5c9a;--pink2:#ff8fba;--text:#27232a;--muted:#777;--line:#f0dbe5}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif;background:linear-gradient(135deg,#fff7fb,#f6f4ff);color:var(--text)}
+.wrap{max-width:900px;margin:auto;padding:22px 14px 50px}.hero{text-align:center;padding:18px 0 8px}
+h1{font-size:clamp(25px,6vw,42px);margin:5px 0 8px}.sub{color:var(--muted)}
+.panel{background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 8px 30px #8b426016;margin-top:15px}
+.series{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.series label{display:block}.series input{display:none}
+.series span{display:block;text-align:center;padding:13px 8px;border:2px solid var(--line);border-radius:14px;background:#fff;font-weight:700;cursor:pointer}
+.series input:checked+span{border-color:var(--pink);background:#fff0f6;color:#d82d70}
+button{border:0;border-radius:14px;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer}
+.primary{background:var(--pink);color:#fff;width:100%;margin-top:15px}.secondary{background:#f5eef2}
+.hidden{display:none!important}.battle{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+.char{background:#fff;border:2px solid var(--line);border-radius:20px;padding:12px;cursor:pointer;transition:.15s}
+.char:hover{transform:translateY(-2px);border-color:var(--pink2)} .char img,.photo{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:16px;background:#f3edf1}
+.name{text-align:center;font-size:20px;font-weight:800;padding:12px 2px 4px}.vs{text-align:center;color:var(--pink);font-weight:900;font-size:24px;align-self:center}
+.progress{height:9px;background:#eee;border-radius:99px;overflow:hidden;margin:12px 0}.bar{height:100%;background:var(--pink);width:0}
+.rank{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--line)}.rank:last-child{border:0}
+.num{width:42px;font-size:23px;font-weight:900;text-align:center}.rank img{width:58px;height:58px;object-fit:cover;border-radius:12px;background:#f3edf1}
+.rank .rname{font-weight:800;font-size:17px}.medal{font-size:25px}
+.uploads{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.uploadrow{border:1px solid var(--line);border-radius:12px;padding:9px;background:#fff;font-size:13px}
+input[type=file]{width:100%;margin-top:5px}.hint{font-size:13px;color:var(--muted);line-height:1.6}
+@media(max-width:520px){.wrap{padding:12px 10px 40px}.panel{padding:13px}.name{font-size:17px}.battle{gap:8px}.char{padding:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><h1>🎀 ラブライブ！推しキャラランキング</h1><div class="sub">2人ずつ選んで、あなたの推しランキングを作ろう！</div></div>
+
+<section id="setup" class="panel">
+<h2>① シリーズを選ぶ</h2>
+<div class="series" id="series"></div>
+<p class="hint">※ 蓮ノ空・イキヅライブ・舞台版は入れていません。</p>
+<button class="primary" onclick="start()">ランキング開始！</button>
+</section>
+
+<section id="battlePanel" class="panel hidden">
+<div id="battleTitle"></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="battle" id="battle"></div>
+<p class="hint" style="text-align:center">写真をタップして「好きな方」を選択！</p>
+</section>
+
+<section id="result" class="panel hidden">
+<h2>🏆 あなたのランキング</h2>
+<div id="ranking"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+<button class="primary" onclick="restart()">もう一回やる</button>
+<button class="secondary" onclick="showUploads()">写真を設定</button>
+</div>
+</section>
+
+<section id="uploadPanel" class="panel hidden">
+<h2>📷 キャラ写真を設定</h2>
+<p class="hint">スマホの写真をキャラごとに設定できます。画像はこのブラウザ内に保存されます。公式画像などを使う場合は利用規約・権利関係に注意してね。</p>
+<div class="uploads" id="uploads"></div>
+<button class="secondary" style="width:100%;margin-top:12px" onclick="closeUploads()">戻る</button>
+</section>
+</div>
+
+<script>
+const DATA = {"μ's": [{"name": "高坂穂乃果", "key": "Honoka", "img": ""}, {"name": "絢瀬絵里", "key": "Eli", "img": ""}, {"name": "南ことり", "key": "Kotori", "img": ""}, {"name": "園田海未", "key": "Umi", "img": ""}, {"name": "星空凛", "key": "Rin", "img": ""}, {"name": "西木野真姫", "key": "Maki", "img": ""}, {"name": "東條希", "key": "Nozomi", "img": ""}, {"name": "小泉花陽", "key": "Hanayo", "img": ""}, {"name": "矢澤にこ", "key": "Nico", "img": ""}], "Aqours": [{"name": "高海千歌", "key": "Chika", "img": ""}, {"name": "桜内梨子", "key": "Riko", "img": ""}, {"name": "松浦果南", "key": "Kanan", "img": ""}, {"name": "黒澤ダイヤ", "key": "Dia", "img": ""}, {"name": "渡辺曜", "key": "You", "img": ""}, {"name": "津島善子", "key": "Yoshiko", "img": ""}, {"name": "国木田花丸", "key": "Hanamaru", "img": ""}, {"name": "小原鞠莉", "key": "Mari", "img": ""}, {"name": "黒澤ルビィ", "key": "Ruby", "img": ""}], "虹ヶ咲": [{"name": "上原歩夢", "key": "Ayumu", "img": ""}, {"name": "中須かすみ", "key": "Kasumi", "img": ""}, {"name": "桜坂しずく", "key": "Shizuku", "img": ""}, {"name": "朝香果林", "key": "Karin", "img": ""}, {"name": "宮下愛", "key": "Ai", "img": ""}, {"name": "近江彼方", "key": "Kanata", "img": ""}, {"name": "優木せつ菜", "key": "Setsuna", "img": ""}, {"name": "エマ・ヴェルデ", "key": "Emma", "img": ""}, {"name": "天王寺璃奈", "key": "Rina", "img": ""}, {"name": "三船栞子", "key": "Shioriko", "img": ""}, {"name": "ミア・テイラー", "key": "Mia", "img": ""}, {"name": "鐘嵐珠", "key": "Lanzhu", "img": ""}, {"name": "高咲侑", "key": "Yu", "img": ""}], "Liella!": [{"name": "澁谷かのん", "key": "Kanon", "img": ""}, {"name": "唐可可", "key": "Keke", "img": ""}, {"name": "嵐千砂都", "key": "Chisato", "img": ""}, {"name": "平安名すみれ", "key": "Sumire", "img": ""}, {"name": "葉月恋", "key": "Ren", "img": ""}, {"name": "桜小路きな子", "key": "Kinako", "img": ""}, {"name": "米女メイ", "key": "Mei", "img": ""}, {"name": "若菜四季", "key": "Shiki", "img": ""}, {"name": "鬼塚夏美", "key": "Natsumi", "img": ""}, {"name": "ウィーン・マルガレーテ", "key": "Margarete", "img": ""}, {"name": "鬼塚冬毬", "key": "Tomari", "img": ""}]};
+let selected=[], chars=[], wins={}, matches=[], idx=0;
+
+const seriesEl=document.getElementById("series");
+Object.keys(DATA).forEach((s,i)=>{
+  seriesEl.insertAdjacentHTML("beforeend",`<label><input type="checkbox" value="${s}" ${i<4?'checked':''}><span>${s}</span></label>`);
+});
+
+function getAll(){
+  return selected.flatMap(s=>DATA[s].map(c=>({...c,img:localStorage.getItem("llimg_"+c.key)||c.img})));
+}
+function start(){
+  selected=[...seriesEl.querySelectorAll("input:checked")].map(x=>x.value);
+  if(!selected.length){alert("シリーズを1つ以上選んでね！");return}
+  chars=getAll(); wins={}; chars.forEach(c=>wins[c.key]=0);
+  // Random pairwise comparisons: enough comparisons to produce a useful preference ranking.
+  matches=[];
+  let pool=[...chars];
+  for(let round=0;round<Math.min(5,chars.length);round++){
+    pool=pool.sort(()=>Math.random()-.5);
+    for(let i=0;i+1<pool.length;i+=2) matches.push([pool[i],pool[i+1]]);
+  }
+  // Guarantee every character gets at least one matchup.
+  const seen=new Set(matches.flat().map(c=>c.key));
+  chars.filter(c=>!seen.has(c.key)).forEach(c=>{
+    const other=chars[Math.floor(Math.random()*chars.length)];
+    if(other.key!==c.key) matches.push([c,other]);
+  });
+  idx=0; document.getElementById("setup").classList.add("hidden");
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("battlePanel").classList.remove("hidden"); renderMatch();
+}
+function placeholder(c){
+  return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="100%" height="100%" fill="#f3edf1"/><text x="50%" y="47%" text-anchor="middle" font-size="90">🎀</text><text x="50%" y="65%" text-anchor="middle" font-size="28" fill="#777">${c.name}</text></svg>`);
+}
+function imgSrc(c){return c.img||placeholder(c)}
+function renderMatch(){
+  if(idx>=matches.length){finish();return}
+  const [a,b]=matches[idx];
+  document.getElementById("battleTitle").innerHTML=`<b>第 ${idx+1} 問</b>　どっちが好き？`;
+  document.getElementById("bar").style.width=(idx/matches.length*100)+"%";
+  document.getElementById("battle").innerHTML=[a,b].map(c=>`
+    <div class="char" onclick="choose('${c.key}')">
+      <img src="${imgSrc(c)}" alt="${c.name}" onerror="this.src='${placeholder(c)}'">
+      <div class="name">${c.name}</div>
+    </div>`).join("");
+}
+function choose(key){
+  wins[key]++;
+  idx++;
+  renderMatch();
+}
+function finish(){
+  const ranking=[...chars].sort((a,b)=>wins[b.key]-wins[a.key] || Math.random()-.5);
+  document.getElementById("battlePanel").classList.add("hidden");
+  document.getElementById("result").classList.remove("hidden");
+  document.getElementById("ranking").innerHTML=ranking.map((c,i)=>`
+    <div class="rank"><div class="num">${i<3?['🥇','🥈','🥉'][i]:i+1}</div>
+    <img src="${imgSrc(c)}" alt="${c.name}" onerror="this.src='${placeholder(c)}'">
+    <div><div class="rname">${c.name}</div><div class="hint">${wins[c.key]}勝</div></div></div>`).join("");
+}
+function restart(){document.getElementById("result").classList.add("hidden");document.getElementById("setup").classList.remove("hidden")}
+function showUploads(){
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("uploadPanel").classList.remove("hidden");
+  document.getElementById("uploads").innerHTML=chars.map(c=>`
+    <div class="uploadrow"><b>${c.name}</b><input type="file" accept="image/*" onchange="saveImg(event,'${c.key}')"></div>`).join("");
+}
+function closeUploads(){document.getElementById("uploadPanel").classList.add("hidden");document.getElementById("result").classList.remove("hidden")}
+function saveImg(e,key){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader(); r.onload=()=>{localStorage.setItem("llimg_"+key,r.result);alert("写真を設定したよ！");}; r.readAsDataURL(f);
+}
+</script>
+</body></html>
